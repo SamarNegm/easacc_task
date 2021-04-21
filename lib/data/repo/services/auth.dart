@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easacc_task/common_widgets/platform_alert_dialog.dart';
 import 'package:easacc_task/data/models/My_App_User_Model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_facebook_login/flutter_facebook_login.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -101,31 +101,31 @@ class Auth implements AuthService {
   Future<MyAppUser> signInWithFacebook() async {
     final FacebookLogin facebookSignIn = new FacebookLogin();
     final FacebookLoginResult result = await facebookSignIn.logIn(['email']);
-    print('state of login fb ' + result.status.toString());
     switch (result.status) {
       case FacebookLoginStatus.loggedIn:
-        print('hi');
         final FacebookAccessToken accessToken = result.accessToken;
-        print('''  Logged in!
-
-            Token: ${accessToken.token}
-            User id: ${accessToken.userId}
-            Expires: ${accessToken.expires}
-            Permissions: ${accessToken.permissions}
-            Declined permissions: ${accessToken.declinedPermissions}''');
-        final fb = await facebookSignIn.logIn(['email']);
-        print(fb.status.toString() + '>>');
+        final authResult = await _firebaseAuth.signInWithCredential(
+          FacebookAuthProvider.credential(
+            result.accessToken.token,
+          ),
+        );
+        return _userFromFirebase(authResult.user);
 
         break;
       case FacebookLoginStatus.cancelledByUser:
-        AlertDialog(
-          title: Text('Login cancelled by the user.'),
+        PlatformAlertDialog(
+          content: 'Login cancelled by the user.',
+          defaultActionText: 'ok',
+          cancelActionText: 'cancle',
+          title: 'cancelled',
         );
         break;
       case FacebookLoginStatus.error:
-        AlertDialog(
-            title: Text('Something went wrong with the login process.\n'
-                'Here\'s the error Facebook gave us: ${result.errorMessage}'));
+        PlatformAlertDialog(
+            defaultActionText: 'ok',
+            cancelActionText: 'cancle',
+            content: 'Something went wrong with the login process.\n'
+                'Here\'s the error Facebook gave us: ${result.errorMessage}');
         print(result.errorMessage + '>>>>>>>>>');
         break;
     }
@@ -167,8 +167,8 @@ class Auth implements AuthService {
   Future<void> signOut() async {
     final GoogleSignIn googleSignIn = GoogleSignIn();
     await googleSignIn.signOut();
-    // final FacebookLogin facebookLogin = FacebookLogin();
-    // await facebookLogin.logOut();
+    final FacebookLogin facebookLogin = FacebookLogin();
+    await facebookLogin.logOut();
     return _firebaseAuth.signOut();
   }
 
